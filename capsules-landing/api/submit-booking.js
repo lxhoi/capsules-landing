@@ -1,4 +1,6 @@
 // Vercel serverless function to handle booking form submissions
+import { sendTelegramNotification } from './send-telegram';
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -33,10 +35,41 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Check-out date must be after check-in date' });
     }
 
+    // Format dates for display
+    const formatDate = (date) => {
+      return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    // Create Telegram message
+    const telegramMessage = `
+🏠 <b>New Booking Request!</b>
+
+👤 <b>Guest:</b> ${name}
+📧 <b>Email:</b> ${email}
+👥 <b>Guests:</b> ${guests}
+📅 <b>Check-in:</b> ${formatDate(checkIn)}
+📅 <b>Check-out:</b> ${formatDate(checkOut)}
+${message ? `💬 <b>Message:</b>\n${message}` : ''}
+
+⏰ Received at: ${new Date().toLocaleString()}
+    `.trim();
+
+    // Send Telegram notification
+    const notificationSent = await sendTelegramNotification(telegramMessage);
+    
+    if (!notificationSent) {
+      console.error('Failed to send Telegram notification');
+      // Continue with the booking process even if notification fails
+    }
+
     // Here you would typically:
-    // 1. Send an email notification
-    // 2. Store the booking in a database
-    // 3. Integrate with a booking system
+    // 1. Store the booking in a database
+    // 2. Integrate with a booking system
     // For now, we'll just log it and return success
 
     // Example: Log the booking (replace with your actual storage solution)
