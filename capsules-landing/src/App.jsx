@@ -38,6 +38,7 @@ function App() {
   const featuresRef = useRef(null);
   const galleryRef = useRef(null);
   const welcomeRef = useRef(null);
+  const formRef = useRef(null);
 
   // Use framer-motion's useScroll for real-time scroll tracking
   const { scrollY } = useScroll();
@@ -54,6 +55,68 @@ function App() {
   // Animate logo-title on scroll: shrink and fade out as user scrolls down
   const logoScale = useTransform(springY, [0, 200], [1, 0.7]);
   const logoOpacity = useTransform(springY, [0, 200], [1, 0.3]);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    checkIn: '',
+    checkOut: '',
+    guests: '1',
+    message: ''
+  });
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear any previous errors when user makes changes
+    if (formError) setFormError('');
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      const response = await fetch('/api/submit-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      setFormSubmitted(true);
+      // Reset form after 3 seconds
+      setTimeout(() => {
+        setFormSubmitted(false);
+        setFormData({
+          name: '',
+          email: '',
+          checkIn: '',
+          checkOut: '',
+          guests: '1',
+          message: ''
+        });
+      }, 3000);
+    } catch (error) {
+      setFormError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
@@ -164,6 +227,19 @@ function App() {
         paused: true,
         yoyo: true,
         repeat: 1
+      });
+
+      // Booking form animation
+      gsap.from(formRef.current, {
+        scrollTrigger: {
+          trigger: formRef.current,
+          start: "top center",
+          toggleActions: "play none none reverse"
+        },
+        duration: 1,
+        y: 50,
+        opacity: 0,
+        ease: "power2.out"
       });
     }
   }, [loading]);
@@ -300,6 +376,109 @@ function App() {
                 <h4>How do I get there?</h4>
                 <p>We'll send you detailed directions after you book. Parking is available on site.</p>
               </div>
+            </div>
+          </section>
+
+          {/* Booking Form Section */}
+          <section className="booking-section" ref={formRef}>
+            <div className="booking-container">
+              <h2>Book Your Stay</h2>
+              <p className="booking-subtitle">Experience the magic of Capsules</p>
+              
+              <form onSubmit={handleFormSubmit} className="booking-form">
+                {formError && (
+                  <div className="form-error">
+                    {formError}
+                  </div>
+                )}
+                
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label htmlFor="name">Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleFormChange}
+                      required
+                      placeholder="Your name"
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleFormChange}
+                      required
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="checkIn">Check-in Date</label>
+                    <input
+                      type="date"
+                      id="checkIn"
+                      name="checkIn"
+                      value={formData.checkIn}
+                      onChange={handleFormChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="checkOut">Check-out Date</label>
+                    <input
+                      type="date"
+                      id="checkOut"
+                      name="checkOut"
+                      value={formData.checkOut}
+                      onChange={handleFormChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="guests">Number of Guests</label>
+                    <select
+                      id="guests"
+                      name="guests"
+                      value={formData.guests}
+                      onChange={handleFormChange}
+                      required
+                    >
+                      {[1,2,3,4].map(num => (
+                        <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="form-group full-width">
+                  <label htmlFor="message">Special Requests</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleFormChange}
+                    placeholder="Any special requests or questions?"
+                    rows="4"
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  className={`submit-btn ${isSubmitting ? 'submitting' : ''}`}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Submitting...' : formSubmitted ? 'Thank You!' : 'Book Now'}
+                </button>
+              </form>
             </div>
           </section>
 
