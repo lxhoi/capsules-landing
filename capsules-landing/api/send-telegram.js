@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 // Utility function to send Telegram notifications
 export async function sendTelegramNotification(message) {
   const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
